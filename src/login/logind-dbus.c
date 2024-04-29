@@ -2289,8 +2289,17 @@ static int nologin_timeout_handler(
 }
 
 static usec_t nologin_timeout_usec(usec_t elapse) {
-        /* Issue /run/nologin five minutes before shutdown */
-        return LESS_BY(elapse, 5 * USEC_PER_MINUTE);
+        /* Issue /run/nologin before SYSTEMD_SHUTDOWN_NOLOGIN_SECONDS, 5min by default. */
+        int nologin_period_usec, r;
+
+        /* TODO: move (add?) to systemctl.conf */
+        r = secure_getenv_uint64("SYSTEMD_SHUTDOWN_NOLOGIN_SECONDS");
+        if (r > 0)
+            nologin_period_usec = r * USEC_PER_SEC;
+        else
+            nologin_period_usec = 5 * USEC_PER_MINUTE;
+
+        return LESS_BY(elapse, nologin_period_usec);
 }
 
 static void reset_scheduled_shutdown(Manager *m) {
